@@ -25,9 +25,9 @@ cat > package.json << 'EOF'
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@romatech/ai-extensions": "^1.0.0",
-    "@romatech/orm": "^1.0.0",
-    "@romatech/orm-providers-memory": "^1.0.0",
+    "@romatech/ai-extensions": "^1.3.0",
+    "@romatech/orm": "^1.2.0",
+    "@romatech/orm-providers-memory": "^1.3.0",
     "express": "^5.1.0",
     "reflect-metadata": "^0.2.2"
   },
