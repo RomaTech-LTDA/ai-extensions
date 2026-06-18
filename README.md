@@ -2,7 +2,7 @@
 
 Plug-and-play AI enablement framework for Node.js APIs. Transforms Express/Fastify/Koa endpoints into **MCP tools** and **RAG-enabled knowledge sources** automatically.
 
-The Node.js equivalent of [Romatech.Extensions.Ai](https://github.com/RomaTech-LTDA/dotnet-ai-extensions) for .NET.
+The Node.js equivalent of [Romatech.Extensions.Ai](https://github.com/romatech-ltda/dotnet-ai-extensions) for .NET.
 
 ## Features
 
