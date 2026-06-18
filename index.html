@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>@romatech/ai-extensions - docs</title>
+	<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+	<style>
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
+			font-size: 14px;
+			padding: 0 26px;
+			line-height: 22px;
+			word-wrap: break-word;
+		}
+
+		img {
+			max-width: 100%;
+		}
+
+		a {
+			text-decoration: none;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		h1 {
+			padding-bottom: 0.3em;
+			line-height: 1.2;
+			border-bottom: 1px solid #eee;
+		}
+
+		h1,
+		h2,
+		h3 {
+			font-weight: normal;
+		}
+
+		table {
+			border-collapse: collapse;
+		}
+
+		table>thead>tr>th {
+			text-align: left;
+			border-bottom: 1px solid #ccc;
+		}
+
+		table>thead>tr>th,
+		table>tbody>tr>td {
+			padding: 5px 10px;
+		}
+
+		table>tbody>tr+tr>td {
+			border-top: 1px solid #eee;
+		}
+
+		pre {
+			background-color: #f8f8f8;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+			padding: 16px;
+			overflow-x: auto;
+		}
+
+		code {
+			font-family: Menlo, Monaco, Consolas, monospace;
+			font-size: 1em;
+		}
+
+		header {
+			height: 60px;
+			display: flex;
+			align-items: center;
+			padding: 0 1rem;
+			gap: 1rem;
+		}
+
+		header img {
+			height: 60px;
+			width: auto;
+		}
+
+		header h1 {
+			font-size: 1.25rem;
+			margin: 0;
+			flex-grow: 1;
+			border: none;
+		}
+
+		header nav.links {
+			display: flex;
+			gap: 1rem;
+		}
+
+		header nav.links a {
+			font-weight: 600;
+			border: 1px solid;
+			padding: 0.25rem 0.75rem;
+			border-radius: 4px;
+		}
+
+		header nav.links a:hover {
+			background-color: rgba(0 0 0 / 0.05);
+			text-decoration: none;
+		}
+	</style>
+</head>
+
+<body>
+	<header>
+		<img src="logo.png" alt="RomaTech Logo" />
+		<h1>@romatech/ai-extensions</h1>
+		<nav class="links" aria-label="External links">
+			<a href="https://github.com/romatech-ltda/ai-extensions-node" target="_blank"
+				rel="noopener noreferrer">GitHub</a>
+			<a href="https://www.npmjs.com/package/@romatech/ai-extensions" target="_blank"
+				rel="noopener noreferrer">npm</a>
+		</nav>
+	</header>
+
+	<p>Plug-and-play AI enablement framework for Node.js APIs. Transforms Express/Fastify/Koa endpoints into
+		MCP-compatible tool providers and RAG-enabled knowledge sources — without architectural rewrites.</p>
+
+	<h2>Installation</h2>
+	<pre><code>npm install @romatech/ai-extensions</code></pre>
+
+	<h2>Quick Start</h2>
+	<pre><code>import express from 'express';
+import { useAi, registerAiMetadata, aiTool, aiHidden } from '@romatech/ai-extensions';
+
+const app = express();
+app.use(express.json());
+
+app.post('/api/orders', (req, res) => {
+  res.json({ id: 2, status: 'Created', ...req.body });
+});
+
+app.delete('/api/orders/:id', (req, res) => {
+  res.sendStatus(204);
+});
+
+// Annotate with AI metadata
+registerAiMetadata('POST', '/api/orders', aiTool({
+  toolName: 'create_order',
+  description: 'Creates a new customer order',
+  category: 'Orders',
+  rateLimit: 10,
+}));
+
+registerAiMetadata('DELETE', '/api/orders/:id', aiHidden());
+
+// Enable AI
+useAi(app, { baseUrl: 'http://localhost:3000' });
+app.listen(3000);</code></pre>
+
+	<h2>Features</h2>
+	<ul>
+		<li><strong>MCP Server</strong> — Expose your API endpoints as MCP tools for LLMs</li>
+		<li><strong>RAG Search</strong> — Semantic search across API documentation</li>
+		<li><strong>Metadata Decorators</strong> — <code>aiTool()</code>, <code>aiHidden()</code>,
+			<code>aiReadOnly()</code></li>
+		<li><strong>Rate Limiting</strong> — Built-in sliding-window rate limiter</li>
+		<li><strong>Zero External Dependencies</strong> — No OpenAI/Ollama required</li>
+	</ul>
+
+	<h2>MCP Protocol</h2>
+	<pre><code># Initialize
+POST /mcp  {"jsonrpc":"2.0","id":1,"method":"initialize"}
+
+# List tools
+POST /mcp  {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+
+# Call a tool
+POST /mcp  {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"create_order","arguments":{...}}}</code></pre>
+
+	<h2>Exposure Rules</h2>
+	<table>
+		<thead>
+			<tr>
+				<th>State</th>
+				<th>MCP</th>
+				<th>RAG</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>aiHidden()</code></td>
+				<td>❌</td>
+				<td>❌</td>
+			</tr>
+			<tr>
+				<td><code>aiTool()</code></td>
+				<td>✅ Executable</td>
+				<td>✅</td>
+			</tr>
+			<tr>
+				<td><code>aiReadOnly()</code></td>
+				<td>❌</td>
+				<td>✅</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h2>Architecture</h2>
+	<pre><code>Node.js Application (Express/Fastify/Koa)
+       ↓
+Metadata Registry
+       ↓
+MCP Layer + RAG Layer
+       ↓
+AI Consumers (Claude, GPT, etc.)</code></pre>
+
+	<h2>License</h2>
+	<p>MIT</p>
+</body>
+
+</html>
