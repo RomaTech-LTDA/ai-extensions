@@ -4,7 +4,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # create-romatech-app — Quick scaffold for a new Express + ORM + AI app
 # ---------------------------------------------------------------------------
-# Usage: bash <(curl -s https://raw.githubusercontent.com/RomaTech-LTDA/ai-extensions-node/main/examples/create-app.sh) my-app
+# Usage: bash <(curl -s https://raw.githubusercontent.com/RomaTech-LTDA/ai-extensions/main/examples/create-app.sh) my-app
 # ---------------------------------------------------------------------------
 
 APP_NAME="${1:-my-romatech-app}"

@@ -10,7 +10,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: GitHub
-      link: https://github.com/RomaTech-LTDA/ai-extensions-node
+      link: https://github.com/RomaTech-LTDA/ai-extensions
 features:
   - title: MCP Server
     details: Expose API endpoints as MCP tools for LLMs like Claude and GPT.
