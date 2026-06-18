@@ -7,11 +7,15 @@ import { McpToolRegistry } from './mcp/tool-registry';
 import { McpToolExecutor } from './mcp/tool-executor';
 import { McpRequestHandler } from './mcp/request-handler';
 import { SlidingWindowRateLimiter } from './mcp/rate-limiter';
+import { McpMetrics } from './mcp/metrics';
+import { McpResourceRegistry } from './mcp/resources';
 import { createMcpMiddleware } from './mcp/middleware';
 import { LocalEmbeddingProvider } from './rag/local-embedding-provider';
 import { SemanticIndexer } from './rag/semantic-indexer';
 import { RagSearchService } from './rag/search-service';
 import type { IEndpointDiscoveryProvider, IEmbeddingProvider } from './shared/models';
+import type { ILogger } from './shared/logger';
+import { ConsoleLogger } from './shared/logger';
 
 /**
  * Configuration options for the full AI enablement setup.
@@ -27,6 +31,8 @@ export interface AiOptions {
   discoveryProvider?: IEndpointDiscoveryProvider;
   /** Custom embedding provider. Default: LocalEmbeddingProvider */
   embeddingProvider?: IEmbeddingProvider;
+  /** Custom logger. Default: ConsoleLogger */
+  logger?: ILogger;
 }
 
 /**
@@ -39,6 +45,10 @@ export interface AiServices {
   mcpRegistry: McpToolRegistry;
   /** RAG search service. */
   ragSearch: RagSearchService;
+  /** MCP usage metrics. */
+  metrics: McpMetrics;
+  /** Logger instance. */
+  logger: ILogger;
 }
 
 /**
@@ -62,13 +72,15 @@ export interface AiServices {
 export function useAi(app: Express, options?: AiOptions): AiServices {
   const baseUrl = options?.baseUrl ?? 'http://localhost:3000';
   const mcpOptions: Required<McpOptions> = { ...DEFAULT_MCP_OPTIONS, ...options?.mcp };
+  const logger = options?.logger ?? new ConsoleLogger();
+  const metrics = new McpMetrics();
 
   // Discovery
   const discoveryProvider = options?.discoveryProvider ?? new MetadataDiscoveryProvider();
 
   // MCP
   const registry = new McpToolRegistry(discoveryProvider);
-  const executor = new McpToolExecutor(baseUrl);
+  const executor = new McpToolExecutor(baseUrl, undefined, mcpOptions.toolTimeoutMs);
   const rateLimiter = new SlidingWindowRateLimiter();
   const handler = new McpRequestHandler(registry, executor, rateLimiter, mcpOptions);
 
@@ -80,9 +92,23 @@ export function useAi(app: Express, options?: AiOptions): AiServices {
   // Register MCP middleware
   app.use(createMcpMiddleware(handler, mcpOptions) as (req: Request, res: Response, next: NextFunction) => void);
 
+  // Connect RAG to MCP handler so rag_search tool is available
+  handler.attachRagSearch(ragSearch);
+
+  // Connect resources (read-only GET endpoints)
+  const resources = new McpResourceRegistry(discoveryProvider);
+  handler.attachResources(resources);
+
+  // Connect metrics
+  handler.attachMetrics(metrics);
+
+  logger.info('AI enablement initialized', { route: mcpOptions.route, baseUrl });
+
   return {
     mcpHandler: handler,
     mcpRegistry: registry,
     ragSearch,
+    metrics,
+    logger,
   };
 }

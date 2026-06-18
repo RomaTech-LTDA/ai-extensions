@@ -8,10 +8,13 @@ export interface RagOptions {
   minimumSimilarity?: number;
   /** Whether to automatically rebuild the index when endpoints change. Default: true */
   autoRebuildIndex?: boolean;
+  /** Time-to-live for the index in milliseconds. Default: 300000 (5 minutes). Set to 0 to disable. */
+  indexTtlMs?: number;
 }
 
 export const DEFAULT_RAG_OPTIONS: Required<RagOptions> = {
   maxSearchResults: 10,
   minimumSimilarity: 0.3,
   autoRebuildIndex: true,
+  indexTtlMs: 300_000,
 };

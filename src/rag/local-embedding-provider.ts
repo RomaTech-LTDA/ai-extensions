@@ -32,10 +32,23 @@ export class LocalEmbeddingProvider implements IEmbeddingProvider {
         embedding[index] += hash > 0 ? 1.0 : -1.0;
       }
 
-      // Also hash whole words
+      // Character bigrams for short words
+      for (let i = 0; i <= word.length - 2; i++) {
+        const bigram = word.substring(i, i + 2);
+        const hash = this.getStableHash(`bi_${bigram}`);
+        const index = Math.abs(hash) % DEFAULT_DIMENSIONS;
+        embedding[index] += 0.5;
+      }
+
+      // Whole word hashing with higher weight
       const wordHash = this.getStableHash(word);
       const wordIndex = Math.abs(wordHash) % DEFAULT_DIMENSIONS;
-      embedding[wordIndex] += 2.0;
+      embedding[wordIndex] += 3.0;
+
+      // Word length feature (helps distinguish short vs long identifiers)
+      const lenHash = this.getStableHash(`len_${Math.min(word.length, 10)}`);
+      const lenIndex = Math.abs(lenHash) % DEFAULT_DIMENSIONS;
+      embedding[lenIndex] += 0.3;
     }
 
     // L2 normalize

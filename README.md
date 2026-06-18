@@ -13,6 +13,12 @@ The Node.js equivalent of [Romatech.Extensions.Ai](https://github.com/RomaTech-L
 - **RAG Search** — Semantic search across your API documentation with local embeddings
 - **Metadata Decorators** — Annotate routes with `aiTool()`, `aiHidden()`, `aiReadOnly()`
 - **Rate Limiting** — Built-in sliding-window rate limiter per tool
+- **Multi-Framework** — Express, Fastify, and Koa adapters included
+- **SSE Transport** — Server-Sent Events for persistent connections
+- **MCP Resources** — Read-only endpoints exposed as MCP resources
+- **Metrics** — Built-in tool usage tracking (call count, latency, errors)
+- **Authentication** — API key auth via `Authorization: Bearer <key>` with optional header forwarding
+- **CORS** — Configurable CORS headers for cross-origin MCP clients
 - **Zero External Dependencies** — No OpenAI/Ollama required for basic usage
 
 ## Installation

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "romatech-orm-test-app": {
+      "url": "http://localhost:3000/mcp",
+      "transport": "http",
+      "description": "RomaTech ORM Test API — exposes user and product management tools"
+    }
+  }
+}

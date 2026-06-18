@@ -12,6 +12,14 @@ export interface McpOptions {
   serverName?: string;
   /** Server version reported in MCP initialize response. */
   serverVersion?: string;
+  /** API key for MCP endpoint authentication. If set, requests must include `Authorization: Bearer <key>`. */
+  apiKey?: string;
+  /** Whether to forward the incoming Authorization header to tool execution requests. Default: false */
+  forwardAuthorization?: boolean;
+  /** CORS allowed origins. Set to '*' for all, or an array of origins. Default: undefined (no CORS headers). */
+  cors?: string | string[];
+  /** Timeout in ms for tool execution. Default: 30000 */
+  toolTimeoutMs?: number;
 }
 
 export const DEFAULT_MCP_OPTIONS: Required<McpOptions> = {
@@ -20,4 +28,8 @@ export const DEFAULT_MCP_OPTIONS: Required<McpOptions> = {
   globalRateLimitPerMinute: 60,
   serverName: '@romatech/ai-extensions',
   serverVersion: '1.0.0',
+  apiKey: '',
+  forwardAuthorization: false,
+  cors: '' as any,
+  toolTimeoutMs: 30_000,
 };

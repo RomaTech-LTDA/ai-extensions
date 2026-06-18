@@ -15,6 +15,11 @@ export interface McpRequestParams {
   name?: string;
   arguments?: Record<string, unknown>;
   cursor?: string;
+  uri?: string;
+  /** For completions/complete — reference to what is being completed. */
+  ref?: { type?: string; name?: string };
+  /** For completions/complete — the argument being completed. */
+  argument?: { name?: string; value?: string };
 }
 
 /**

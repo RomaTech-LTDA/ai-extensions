@@ -2,14 +2,25 @@ import type { AiEndpointDescriptor, IEndpointDiscoveryProvider } from '../shared
 import { AiExposureLevel } from '../shared/models';
 import type { McpToolDefinition } from './protocol';
 
+/** Callback for tool list change notifications. */
+export type ToolListChangedCallback = () => void;
+
 /**
  * Registry that manages discovered MCP tools and handles tool listing.
  */
 export class McpToolRegistry {
   private readonly _tools = new Map<string, AiEndpointDescriptor>();
   private _initialized = false;
+  private _onChangeCallbacks: ToolListChangedCallback[] = [];
 
   constructor(private readonly _discoveryProvider: IEndpointDiscoveryProvider) {}
+
+  /**
+   * Registers a callback to be invoked when the tool list changes.
+   */
+  onToolListChanged(callback: ToolListChangedCallback): void {
+    this._onChangeCallbacks.push(callback);
+  }
 
   /**
    * Initializes the tool registry by discovering endpoints.
@@ -26,6 +37,16 @@ export class McpToolRegistry {
     }
 
     this._initialized = true;
+  }
+
+  /**
+   * Forces a re-discovery of tools. Useful when endpoints change at runtime.
+   */
+  async refresh(): Promise<void> {
+    this._initialized = false;
+    this._tools.clear();
+    await this.initialize();
+    this._onChangeCallbacks.forEach((cb) => cb());
   }
 
   /**

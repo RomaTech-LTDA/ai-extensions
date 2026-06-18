@@ -3,4 +3,5 @@ export * from './metadata';
 export * from './mcp';
 export * from './rag';
 export * from './discovery';
-export { useAi, type AiOptions } from './setup';
+export * from './adapters';
+export { useAi, type AiOptions, type AiServices } from './setup';
