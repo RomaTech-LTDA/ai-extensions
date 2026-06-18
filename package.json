@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/romatech-ltda/ai-extensions-node"
+    "url": "https://github.com/RomaTech-LTDA/ai-extensions-node"
   },
-  "homepage": "https://github.com/romatech-ltda/ai-extensions-node#readme",
+  "homepage": "https://github.com/RomaTech-LTDA/ai-extensions-node#readme",
   "bugs": {
-    "url": "https://github.com/romatech-ltda/ai-extensions-node/issues"
+    "url": "https://github.com/RomaTech-LTDA/ai-extensions-node/issues"
   },
   "keywords": [
     "ai",

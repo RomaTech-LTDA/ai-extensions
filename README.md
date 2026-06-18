@@ -1,8 +1,11 @@
 # @romatech/ai-extensions
 
+[![npm](https://img.shields.io/npm/v/@romatech/ai-extensions)](https://www.npmjs.com/package/@romatech/ai-extensions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/RomaTech-LTDA/ai-extensions-node/blob/main/LICENSE)
+
 Plug-and-play AI enablement framework for Node.js APIs. Transforms Express/Fastify/Koa endpoints into **MCP tools** and **RAG-enabled knowledge sources** automatically.
 
-The Node.js equivalent of [Romatech.Extensions.Ai](https://github.com/romatech-ltda/dotnet-ai-extensions) for .NET.
+The Node.js equivalent of [Romatech.Extensions.Ai](https://github.com/RomaTech-LTDA/dotnet-ai-extensions) for .NET.
 
 ## Features
 
