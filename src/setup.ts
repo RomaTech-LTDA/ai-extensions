@@ -1,8 +1,7 @@
-import type { Express, Request, Response, NextFunction } from 'express';
 import type { McpOptions } from './mcp/options';
 import { DEFAULT_MCP_OPTIONS } from './mcp/options';
 import type { RagOptions } from './rag/options';
-import { MetadataDiscoveryProvider } from './discovery/metadata-discovery-provider';
+import { SwaggerDiscoveryProvider, type SwaggerDiscoveryOptions } from './discovery/swagger-discovery-provider';
 import { McpToolRegistry } from './mcp/tool-registry';
 import { McpToolExecutor } from './mcp/tool-executor';
 import { McpRequestHandler } from './mcp/request-handler';
@@ -27,7 +26,12 @@ export interface AiOptions {
   rag?: RagOptions;
   /** Base URL for internal HTTP calls when executing tools. Default: http://localhost:3000 */
   baseUrl?: string;
-  /** Custom discovery provider. Default: MetadataDiscoveryProvider */
+  /**
+   * Swagger/OpenAPI discovery options.
+   * Default: { specUrl: '{baseUrl}/api-docs.json' }
+   */
+  swagger?: SwaggerDiscoveryOptions;
+  /** Custom discovery provider. Overrides Swagger discovery if provided. */
   discoveryProvider?: IEndpointDiscoveryProvider;
   /** Custom embedding provider. Default: LocalEmbeddingProvider */
   embeddingProvider?: IEmbeddingProvider;
@@ -52,33 +56,71 @@ export interface AiServices {
 }
 
 /**
- * Sets up AI enablement on an Express app.
- * Registers MCP middleware and initializes RAG services.
+ * Any framework that supports middleware/route registration.
+ * Works with Express, Fastify, Koa Router, Hono, and any framework with:
+ * - `.use(middleware)` for middleware registration, OR
+ * - `.post(path, handler)` for direct route registration
+ */
+type FrameworkApp = {
+  use?: Function;
+  post?: Function;
+  get?: Function;
+  register?: Function; // Fastify plugin registration
+  [key: string]: any;
+};
+
+/**
+ * Sets up AI enablement on any Node.js HTTP framework.
+ *
+ * Supported frameworks:
+ * - **Express**: `useAi(app)` — registers as middleware via `app.use()`
+ * - **Fastify**: `useAi(fastify)` — registers as plugin via `fastify.register()`
+ * - **Koa**: `useAi(router)` — registers routes on the Koa router
+ * - **Hono**: `useAi(app)` — registers routes via `app.post()`
+ *
+ * Works like the .NET version:
+ * 1. Discovers ALL endpoints from Swagger/OpenAPI spec automatically
+ * 2. Endpoints marked with `@AiTool()` become executable MCP tools
+ * 3. Endpoints marked with `@AiHidden()` are excluded
+ * 4. All other endpoints are ReadOnly (indexed in RAG for semantic search)
+ * 5. Exposes MCP protocol at POST /mcp
+ * 6. Built-in `rag_search` tool for semantic API documentation search
  *
  * @example
  * ```ts
- * import express from 'express';
- * import { useAi, registerAiMetadata, aiTool } from '@romatech/ai-extensions';
- *
+ * // Express
  * const app = express();
- * app.use(express.json());
+ * useController(app, OrdersController);
+ * useAi(app);
  *
- * app.post('/api/orders', createOrder);
- * registerAiMetadata('POST', '/api/orders', aiTool('create_order'));
+ * // Fastify
+ * const fastify = Fastify();
+ * useController(fastify, OrdersController);
+ * useAi(fastify);
  *
- * const { ragSearch } = useAi(app, { baseUrl: 'http://localhost:3000' });
+ * // Koa
+ * const router = new Router();
+ * useController(router, OrdersController);
+ * useAi(router);
+ *
+ * // Hono
+ * const app = new Hono();
+ * useController(app, OrdersController);
+ * useAi(app);
  * ```
  */
-export function useAi(app: Express, options?: AiOptions): AiServices {
+export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
   const baseUrl = options?.baseUrl ?? 'http://localhost:3000';
   const mcpOptions: Required<McpOptions> = { ...DEFAULT_MCP_OPTIONS, ...options?.mcp };
   const logger = options?.logger ?? new ConsoleLogger();
   const metrics = new McpMetrics();
 
   // Discovery
-  const discoveryProvider = options?.discoveryProvider ?? new MetadataDiscoveryProvider();
+  const discoveryProvider = options?.discoveryProvider ?? new SwaggerDiscoveryProvider(
+    options?.swagger ?? { specUrl: `${baseUrl}/api-docs.json` },
+  );
 
-  // MCP
+  // MCP core services
   const registry = new McpToolRegistry(discoveryProvider);
   const executor = new McpToolExecutor(baseUrl, undefined, mcpOptions.toolTimeoutMs);
   const rateLimiter = new SlidingWindowRateLimiter();
@@ -89,20 +131,20 @@ export function useAi(app: Express, options?: AiOptions): AiServices {
   const indexer = new SemanticIndexer(embeddingProvider);
   const ragSearch = new RagSearchService(indexer, discoveryProvider, options?.rag);
 
-  // Register MCP middleware
-  app.use(createMcpMiddleware(handler, mcpOptions) as (req: Request, res: Response, next: NextFunction) => void);
-
-  // Connect RAG to MCP handler so rag_search tool is available
+  // Connect services
   handler.attachRagSearch(ragSearch);
-
-  // Connect resources (read-only GET endpoints)
+  handler.attachMetrics(metrics);
   const resources = new McpResourceRegistry(discoveryProvider);
   handler.attachResources(resources);
 
-  // Connect metrics
-  handler.attachMetrics(metrics);
+  // Register MCP on the framework (auto-detect)
+  registerMcpOnFramework(app, handler, mcpOptions);
 
-  logger.info('AI enablement initialized', { route: mcpOptions.route, baseUrl });
+  logger.info('AI enablement initialized', {
+    route: mcpOptions.route,
+    baseUrl,
+    framework: detectFramework(app),
+  });
 
   return {
     mcpHandler: handler,
@@ -111,4 +153,129 @@ export function useAi(app: Express, options?: AiOptions): AiServices {
     metrics,
     logger,
   };
+}
+
+// ─── Framework Detection & Registration ──────────────────────────────────────────
+
+function detectFramework(app: FrameworkApp): string {
+  if (app.register && app.addHook) return 'fastify';
+  if (app.use && app.context) return 'koa';
+  if (app.use && app.listen) return 'express';
+  if (app.fetch) return 'hono';
+  return 'unknown';
+}
+
+function registerMcpOnFramework(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+  const framework = detectFramework(app);
+
+  switch (framework) {
+    case 'fastify':
+      registerFastify(app, handler, options);
+      break;
+    case 'koa':
+      registerKoa(app, handler, options);
+      break;
+    case 'hono':
+      registerHono(app, handler, options);
+      break;
+    case 'express':
+    default:
+      registerExpress(app, handler, options);
+      break;
+  }
+}
+
+function registerExpress(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+  const middleware = createMcpMiddleware(handler, options);
+  app.use!(middleware);
+}
+
+function registerFastify(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+  const route = options.route;
+
+  // Health
+  app.get!(`${route}/health`, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // MCP endpoint
+  app.post!(route, async (request: any, reply: any) => {
+    const body = request.body;
+    if (!body || !body.method) {
+      return reply.status(400).send({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid request' } });
+    }
+
+    // Auth check
+    if (options.apiKey) {
+      const auth = request.headers['authorization'] ?? '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (token !== options.apiKey) {
+        return reply.status(401).send({ jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized' } });
+      }
+    }
+
+    const response = await handler.handle(body);
+    return response;
+  });
+}
+
+function registerKoa(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+  const route = options.route;
+
+  // Register as Koa middleware
+  const koaMiddleware = async (ctx: any, next: () => Promise<void>) => {
+    if (ctx.path === `${route}/health` && ctx.method === 'GET') {
+      ctx.body = { status: 'ok', timestamp: new Date().toISOString() };
+      return;
+    }
+
+    if (ctx.path !== route || ctx.method !== 'POST') {
+      return next();
+    }
+
+    if (options.apiKey) {
+      const auth = ctx.headers['authorization'] ?? '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (token !== options.apiKey) {
+        ctx.status = 401;
+        ctx.body = { jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized' } };
+        return;
+      }
+    }
+
+    const body = ctx.request.body;
+    if (!body || !body.method) {
+      ctx.status = 400;
+      ctx.body = { jsonrpc: '2.0', error: { code: -32600, message: 'Invalid request' } };
+      return;
+    }
+
+    ctx.body = await handler.handle(body);
+  };
+
+  app.use!(koaMiddleware);
+}
+
+function registerHono(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+  const route = options.route;
+
+  // Health
+  app.get!(`${route}/health`, (c: any) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // MCP endpoint
+  app.post!(route, async (c: any) => {
+    if (options.apiKey) {
+      const auth = c.req.header('authorization') ?? '';
+      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      if (token !== options.apiKey) {
+        return c.json({ jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized' } }, 401);
+      }
+    }
+
+    const body = await c.req.json();
+    if (!body || !body.method) {
+      return c.json({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid request' } }, 400);
+    }
+
+    const response = await handler.handle(body);
+    return c.json(response);
+  });
 }

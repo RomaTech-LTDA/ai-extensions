@@ -49,6 +49,10 @@
     "./adapters": {
       "types": "./dist/adapters/index.d.ts",
       "default": "./dist/adapters/index.js"
+    },
+    "./swagger": {
+      "types": "./dist/swagger/index.d.ts",
+      "default": "./dist/swagger/index.js"
     }
   },
   "files": [
@@ -66,12 +70,15 @@
     "size": "npm run build && npm pack --dry-run 2>&1 | tail -1",
     "docs": "typedoc --out docs/api src/index.ts"
   },
-  "dependencies": {},
   "peerDependencies": {
-    "express": ">=4.0.0 || >=5.0.0"
+    "express": ">=4.0.0 || >=5.0.0",
+    "reflect-metadata": ">=0.1.0"
   },
   "peerDependenciesMeta": {
     "express": {
+      "optional": true
+    },
+    "reflect-metadata": {
       "optional": true
     }
   },
@@ -82,6 +89,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
     "express": "^5.1.0",
+    "reflect-metadata": "^0.2.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.9.3",
     "vitest": "^2.1.0"

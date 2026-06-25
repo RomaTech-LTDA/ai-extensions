@@ -1,224 +1,162 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-	<title>@romatech/ai-extensions - docs</title>
-	<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
-	<style>
-		body {
-			font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
-			font-size: 14px;
-			padding: 0 26px;
-			line-height: 22px;
-			word-wrap: break-word;
-		}
-
-		img {
-			max-width: 100%;
-		}
-
-		a {
-			text-decoration: none;
-		}
-
-		a:hover {
-			text-decoration: underline;
-		}
-
-		h1 {
-			padding-bottom: 0.3em;
-			line-height: 1.2;
-			border-bottom: 1px solid #eee;
-		}
-
-		h1,
-		h2,
-		h3 {
-			font-weight: normal;
-		}
-
-		table {
-			border-collapse: collapse;
-		}
-
-		table>thead>tr>th {
-			text-align: left;
-			border-bottom: 1px solid #ccc;
-		}
-
-		table>thead>tr>th,
-		table>tbody>tr>td {
-			padding: 5px 10px;
-		}
-
-		table>tbody>tr+tr>td {
-			border-top: 1px solid #eee;
-		}
-
-		pre {
-			background-color: #f8f8f8;
-			border: 1px solid #ccc;
-			border-radius: 3px;
-			padding: 16px;
-			overflow-x: auto;
-		}
-
-		code {
-			font-family: Menlo, Monaco, Consolas, monospace;
-			font-size: 1em;
-		}
-
-		header {
-			height: 60px;
-			display: flex;
-			align-items: center;
-			padding: 0 1rem;
-			gap: 1rem;
-		}
-
-		header img {
-			height: 60px;
-			width: auto;
-		}
-
-		header h1 {
-			font-size: 1.25rem;
-			margin: 0;
-			flex-grow: 1;
-			border: none;
-		}
-
-		header nav.links {
-			display: flex;
-			gap: 1rem;
-		}
-
-		header nav.links a {
-			font-weight: 600;
-			border: 1px solid;
-			padding: 0.25rem 0.75rem;
-			border-radius: 4px;
-		}
-
-		header nav.links a:hover {
-			background-color: rgba(0 0 0 / 0.05);
-			text-decoration: none;
-		}
-	</style>
+    <title>@romatech/ai-extensions</title>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; line-height: 1.6; color: #333; }
+        h1 { border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        h2 { margin-top: 2rem; }
+        pre { background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; padding: 1rem; overflow-x: auto; }
+        code { font-family: 'SFMono-Regular', Menlo, monospace; font-size: 0.9em; }
+        :not(pre) > code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #e1e4e8; padding: 8px 12px; text-align: left; }
+        th { background: #f6f8fa; }
+        a { color: #0366d6; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+        header img { height: 60px; }
+        header h1 { border: none; margin: 0; flex-grow: 1; }
+        header nav { display: flex; gap: 0.75rem; }
+        header nav a { border: 1px solid #0366d6; padding: 4px 12px; border-radius: 4px; font-weight: 600; font-size: 0.9em; }
+        header nav a:hover { background: #0366d6; color: white; text-decoration: none; }
+        .badge { display: inline-block; margin-right: 4px; }
+    </style>
 </head>
-
 <body>
-	<header>
-		<img src="logo.png" alt="RomaTech Logo" />
-		<h1>@romatech/ai-extensions</h1>
-		<nav class="links" aria-label="External links">
-			<a href="https://github.com/RomaTech-LTDA/ai-extensions" target="_blank"
-				rel="noopener noreferrer">GitHub</a>
-			<a href="https://www.npmjs.com/package/@romatech/ai-extensions" target="_blank"
-				rel="noopener noreferrer">npm</a>
-		</nav>
-	</header>
+    <header>
+        <img src="logo.png" alt="RomaTech" />
+        <h1>@romatech/ai-extensions</h1>
+        <nav>
+            <a href="https://github.com/RomaTech-LTDA/ai-extensions-node">GitHub</a>
+            <a href="https://www.npmjs.com/package/@romatech/ai-extensions">npm</a>
+        </nav>
+    </header>
 
-	<p>Plug-and-play AI enablement framework for Node.js APIs. Transforms Express/Fastify/Koa endpoints into
-		MCP-compatible tool providers and RAG-enabled knowledge sources — without architectural rewrites.</p>
+    <p>Plug-and-play AI enablement framework for Node.js APIs. Transforms your endpoints into
+    <strong>MCP tools</strong> and <strong>RAG-enabled knowledge sources</strong> — identical to the .NET version.</p>
 
-	<h2>Installation</h2>
-	<pre><code>npm install @romatech/ai-extensions</code></pre>
+    <p>Works with <strong>Express</strong>, <strong>Fastify</strong>, <strong>Koa</strong>, and <strong>Hono</strong>.</p>
 
-	<h2>Quick Start</h2>
-	<pre><code>import express from 'express';
-import { useAi, registerAiMetadata, aiTool, aiHidden } from '@romatech/ai-extensions';
+    <h2>Quick Start</h2>
+    <pre><code>import 'reflect-metadata';
+import express from 'express';
+import {
+    Controller, Get, Post, Delete,
+    AiTool, AiHidden, AiDescription,
+    useController, useAi
+} from '@romatech/ai-extensions';
+
+@Controller('/api/orders')
+class OrdersController {
+    @Get('/')
+    @AiDescription('Lists all orders')
+    static getAll(req, res) {
+        res.json([{ id: 1, status: 'Pending' }]);
+    }
+
+    @Post('/')
+    @AiTool('create_order')
+    @AiDescription('Creates a new order')
+    static create(req, res) {
+        res.status(201).json({ id: 2, ...req.body });
+    }
+
+    @Delete('/:id')
+    @AiHidden()
+    static delete(req, res) {
+        res.sendStatus(204);
+    }
+}
 
 const app = express();
 app.use(express.json());
 
-app.post('/api/orders', (req, res) => {
-  res.json({ id: 2, status: 'Created', ...req.body });
-});
-
-app.delete('/api/orders/:id', (req, res) => {
-  res.sendStatus(204);
-});
-
-// Annotate with AI metadata
-registerAiMetadata('POST', '/api/orders', aiTool({
-  toolName: 'create_order',
-  description: 'Creates a new customer order',
-  category: 'Orders',
-  rateLimit: 10,
-}));
-
-registerAiMetadata('DELETE', '/api/orders/:id', aiHidden());
-
-// Enable AI
+useController(app, OrdersController);
 useAi(app, { baseUrl: 'http://localhost:3000' });
+
 app.listen(3000);</code></pre>
 
-	<h2>Features</h2>
-	<ul>
-		<li><strong>MCP Server</strong> — Expose your API endpoints as MCP tools for LLMs</li>
-		<li><strong>RAG Search</strong> — Semantic search across API documentation</li>
-		<li><strong>Metadata Decorators</strong> — <code>aiTool()</code>, <code>aiHidden()</code>,
-			<code>aiReadOnly()</code></li>
-		<li><strong>Rate Limiting</strong> — Built-in sliding-window rate limiter</li>
-		<li><strong>Multi-Framework</strong> — Express, Fastify, and Koa adapters</li>
-		<li><strong>SSE Transport</strong> — Server-Sent Events for persistent connections</li>
-		<li><strong>MCP Resources</strong> — Read-only endpoints exposed as MCP resources</li>
-		<li><strong>Metrics</strong> — Built-in tool usage tracking (call count, latency, errors)</li>
-		<li><strong>Authentication</strong> — API key auth via Bearer token with optional header forwarding</li>
-		<li><strong>CORS</strong> — Configurable CORS headers for cross-origin MCP clients</li>
-		<li><strong>Zero External Dependencies</strong> — No OpenAI/Ollama required</li>
-	</ul>
+    <h2>Features</h2>
+    <ul>
+        <li><strong>Decorator-based</strong> — <code>@AiTool</code>, <code>@AiHidden</code>, <code>@AiDescription</code> (like .NET attributes)</li>
+        <li><strong>Multi-framework</strong> — Express, Fastify, Koa, Hono (auto-detected)</li>
+        <li><strong>MCP Server</strong> — Full Model Context Protocol (tools, resources, prompts, completions)</li>
+        <li><strong>RAG Search</strong> — Semantic search via built-in <code>rag_search</code> tool</li>
+        <li><strong>Swagger Discovery</strong> — Auto-discovers endpoints from OpenAPI spec</li>
+        <li><strong>Auth &amp; CORS</strong> — API key auth + configurable CORS</li>
+        <li><strong>Metrics</strong> — Tool usage tracking (calls, errors, latency)</li>
+        <li><strong>SSE Transport</strong> — Persistent connections for streaming</li>
+        <li><strong>Zero External Deps</strong> — No OpenAI/Ollama required</li>
+    </ul>
 
-	<h2>MCP Protocol</h2>
-	<pre><code># Initialize
-POST /mcp  {"jsonrpc":"2.0","id":1,"method":"initialize"}
+    <h2>Decorators</h2>
+    <table>
+        <thead><tr><th>Decorator</th><th>.NET Equivalent</th><th>Effect</th></tr></thead>
+        <tbody>
+            <tr><td><code>@Controller('/path')</code></td><td><code>[Route]</code></td><td>Base path prefix</td></tr>
+            <tr><td><code>@Get('/') @Post('/') @Put('/') @Delete('/')</code></td><td><code>[HttpGet] [HttpPost]</code></td><td>Route registration</td></tr>
+            <tr><td><code>@AiTool('name')</code></td><td><code>[AiTool]</code></td><td>MCP executable tool</td></tr>
+            <tr><td><code>@AiHidden()</code></td><td><code>[AiHidden]</code></td><td>Hidden from AI</td></tr>
+            <tr><td><code>@AiDescription('...')</code></td><td><code>[AiDescription]</code></td><td>AI-facing description</td></tr>
+            <tr><td><code>@AiCategory('...')</code></td><td><code>[AiCategory]</code></td><td>Semantic grouping</td></tr>
+            <tr><td><code>@AiRateLimit(n)</code></td><td><code>[AiRateLimit]</code></td><td>Requests/minute limit</td></tr>
+        </tbody>
+    </table>
 
-# List tools
-POST /mcp  {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+    <h2>Exposure Rules</h2>
+    <table>
+        <thead><tr><th>State</th><th>MCP Tool</th><th>RAG Search</th><th>Resources</th></tr></thead>
+        <tbody>
+            <tr><td><code>@AiTool()</code></td><td>✅ Executable</td><td>✅ Indexed</td><td>❌</td></tr>
+            <tr><td><code>@AiHidden()</code></td><td>❌</td><td>❌</td><td>❌</td></tr>
+            <tr><td>No decorator</td><td>❌</td><td>✅ Indexed</td><td>✅ (GET only)</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Multi-Framework</h2>
+    <pre><code>// Express
+useController(app, MyController);
+useAi(app);
+
+// Fastify
+useController(fastify, MyController);
+useAi(fastify);
+
+// Koa
+useController(router, MyController);
+useAi(router);
+
+// Hono
+useController(app, MyController);
+useAi(app);</code></pre>
+
+    <h2>MCP Protocol</h2>
+    <pre><code># List tools
+POST /mcp  {"jsonrpc":"2.0","id":1,"method":"tools/list"}
 
 # Call a tool
-POST /mcp  {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"create_order","arguments":{...}}}</code></pre>
+POST /mcp  {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"create_order","arguments":{...}}}
 
-	<h2>Exposure Rules</h2>
-	<table>
-		<thead>
-			<tr>
-				<th>State</th>
-				<th>MCP</th>
-				<th>RAG</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr>
-				<td><code>aiHidden()</code></td>
-				<td>❌</td>
-				<td>❌</td>
-			</tr>
-			<tr>
-				<td><code>aiTool()</code></td>
-				<td>✅ Executable</td>
-				<td>✅</td>
-			</tr>
-			<tr>
-				<td><code>aiReadOnly()</code></td>
-				<td>❌</td>
-				<td>✅</td>
-			</tr>
-		</tbody>
-	</table>
+# RAG search
+POST /mcp  {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"rag_search","arguments":{"query":"..."}}}
 
-	<h2>Architecture</h2>
-	<pre><code>Node.js Application (Express/Fastify/Koa)
-       ↓
-Metadata Registry
-       ↓
-MCP Layer + RAG Layer
-       ↓
-AI Consumers (Claude, GPT, etc.)</code></pre>
+# Health check
+GET /mcp/health</code></pre>
 
-	<h2>License</h2>
-	<p>MIT</p>
+    <h2>Architecture</h2>
+    <pre><code>Your API (Express/Fastify/Koa/Hono)
+       ↓
+Controller Decorators (@AiTool, @AiHidden, @Get, @Post)
+       ↓
+useController() → registers routes + AI metadata
+       ↓
+useAi() → Swagger Discovery + MCP + RAG
+       ↓
+MCP Clients (Claude, GPT, Kiro, etc.)</code></pre>
+
+    <h2>License</h2>
+    <p>MIT — <a href="https://github.com/RomaTech-LTDA/ai-extensions-node">github.com/RomaTech-LTDA/ai-extensions-node</a></p>
 </body>
-
 </html>
