@@ -68,7 +68,17 @@ export function createSseTransport(
 
       connections.set(sessionId, res);
 
+      // Heartbeat keep-alive (every 30s)
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(`: heartbeat\n\n`);
+        } catch {
+          clearInterval(heartbeat);
+        }
+      }, 30_000);
+
       req.on('close', () => {
+        clearInterval(heartbeat);
         connections.delete(sessionId);
       });
 

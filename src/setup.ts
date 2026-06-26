@@ -47,6 +47,8 @@ export interface AiServices {
   mcpHandler: McpRequestHandler;
   /** MCP tool registry. */
   mcpRegistry: McpToolRegistry;
+  /** MCP tool executor (register custom handlers here). */
+  mcpExecutor: McpToolExecutor;
   /** RAG search service. */
   ragSearch: RagSearchService;
   /** MCP usage metrics. */
@@ -122,7 +124,7 @@ export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
 
   // MCP core services
   const registry = new McpToolRegistry(discoveryProvider);
-  const executor = new McpToolExecutor(baseUrl, undefined, mcpOptions.toolTimeoutMs);
+  const executor = new McpToolExecutor(baseUrl, mcpOptions.toolTimeoutMs);
   const rateLimiter = new SlidingWindowRateLimiter();
   const handler = new McpRequestHandler(registry, executor, rateLimiter, mcpOptions);
 
@@ -149,6 +151,7 @@ export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
   return {
     mcpHandler: handler,
     mcpRegistry: registry,
+    mcpExecutor: executor,
     ragSearch,
     metrics,
     logger,

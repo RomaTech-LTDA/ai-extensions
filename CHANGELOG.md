@@ -2,35 +2,32 @@
 
 All notable changes to @romatech/ai-extensions will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
-## [Unreleased]
+## [2.0.0] - 2026-06-26
 
 ### Added
-- Multi-framework support: Express, Fastify, Koa, Hono (auto-detected)
-- Controller decorators: `@Controller`, `@Get`, `@Post`, `@Put`, `@Patch`, `@Delete`
-- AI decorators: `@AiTool`, `@AiHidden`, `@AiDescription`, `@AiCategory`, `@AiRole`, `@AiRateLimit`, `@AiContextPriority`
-- `useController(app, Controller)` — registers routes + AI metadata from decorators
-- `useAi(app)` — works identically on Express, Fastify, Koa Router, Hono
-- Swagger-based auto-discovery of all API endpoints
-- MCP protocol: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `completions/complete`, `prompts/list`, `prompts/get`
-- Built-in `rag_search` MCP tool for semantic API documentation search
-- Cursor-based pagination in `tools/list`
-- Input argument validation (required fields, type checks)
-- API key authentication (`Authorization: Bearer <key>`)
-- CORS headers (configurable)
-- SSE transport (`GET /mcp/sse` + `POST /mcp/message`)
-- Health endpoint (`GET /mcp/health`)
-- Tool execution timeout (configurable, default 30s)
-- Rate limiting (sliding window, per-tool)
-- Metrics tracking (call count, errors, latency)
-- MCP Resources (read-only GET endpoints as MCP resources)
-- MCP Prompts (built-in `list_available_tools` + `search_api`)
-- MCP Completions (tool name + enum value autocomplete)
-- Tool list change notifications
-- RAG index TTL with auto-rebuild
-- Swagger spec enrichment with `x-ai-*` extensions
-- Local embedding provider (zero external deps)
-- Logger interface (`ILogger` + `ConsoleLogger` + `NullLogger`)
-- Fastify adapter (`createFastifyMcpPlugin`)
-- Koa adapter (`createKoaMcpMiddleware`)
+- **Multi-framework**: Express, Fastify, Koa, Hono auto-detected by `useAi()`
+- **Controller decorators**: `@Controller`, `@Get`, `@Post`, `@Put`, `@Patch`, `@Delete`
+- **AI decorators**: `@AiTool`, `@AiHidden`, `@AiDescription`, `@AiCategory`, `@AiRole`, `@AiRateLimit`, `@AiContextPriority`
+- **`useController(app, Controller)`**: registers routes + AI metadata from decorators
+- **Swagger discovery**: auto-discovers all endpoints from OpenAPI spec
+- **MCP protocol**: initialize, ping, tools/list, tools/call, resources/list, resources/read, completions/complete, prompts/list, prompts/get
+- **Built-in `rag_search` tool**: semantic API documentation search
+- **Custom tool handlers**: bypass HTTP with `mcpExecutor.registerHandler()`
+- **Tool versioning**: `ToolVersionManager` with deprecation support
+- **Dry-run mode**: validate without executing (`dryRun: true`)
+- **Pagination**: cursor-based in tools/list
+- **Input validation**: required fields + type checking
+- **SSE transport**: persistent connections + heartbeat keep-alive (30s)
+- **WebSocket transport**: `createWsMcpHandler()`
+- **API key auth** + **CORS headers**
+- **Health endpoint**: `GET /mcp/health`
+- **Rate limiting**: sliding window, per-tool, configurable
+- **Circuit breaker**: auto-disable failing tools
+- **Metrics**: call count, errors, latency tracking
+- **Audit log**: full tool execution history
+- **Multi-tenant MCP**: different tools per API key
+- **Adapters**: Fastify, Koa, Hono, NestJS, Next.js (Pages + App Router), tRPC, AWS Lambda
+- **Embedding providers**: Local (zero-deps), OpenAI, Ollama
+- **RAG**: index TTL, auto-rebuild, semantic search
+- **Swagger enrichment**: `x-ai-*` extensions injected into spec
+- **Logger interface**: `ILogger`, `ConsoleLogger`, `NullLogger`

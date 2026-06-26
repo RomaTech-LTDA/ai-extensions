@@ -20,6 +20,12 @@ export interface McpOptions {
   cors?: string | string[];
   /** Timeout in ms for tool execution. Default: 30000 */
   toolTimeoutMs?: number;
+  /**
+   * Dry-run mode. When enabled, tools/call validates everything but does NOT execute.
+   * Returns what would be called without side effects. Useful for testing.
+   * Default: false
+   */
+  dryRun?: boolean;
 }
 
 export const DEFAULT_MCP_OPTIONS: Required<McpOptions> = {
@@ -27,9 +33,10 @@ export const DEFAULT_MCP_OPTIONS: Required<McpOptions> = {
   enableRateLimiting: true,
   globalRateLimitPerMinute: 60,
   serverName: '@romatech/ai-extensions',
-  serverVersion: '1.0.0',
+  serverVersion: '2.0.0',
   apiKey: '',
   forwardAuthorization: false,
   cors: '' as any,
   toolTimeoutMs: 30_000,
+  dryRun: false,
 };

@@ -171,6 +171,23 @@ export class McpRequestHandler {
       }
     }
 
+    // Dry-run mode — validate everything but don't execute
+    if (this._options.dryRun) {
+      return mcpSuccess(request.id, {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            dryRun: true,
+            toolName,
+            httpMethod: descriptor.httpMethod,
+            route: descriptor.route,
+            arguments: request.params?.arguments ?? {},
+            message: 'Validation passed. Tool would be executed with these parameters.',
+          }),
+        }],
+      });
+    }
+
     const startTime = Date.now();
     try {
       const result = await this._executor.execute(descriptor, request.params?.arguments);

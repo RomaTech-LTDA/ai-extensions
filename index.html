@@ -81,14 +81,20 @@ app.listen(3000);</code></pre>
     <h2>Features</h2>
     <ul>
         <li><strong>Decorator-based</strong> — <code>@AiTool</code>, <code>@AiHidden</code>, <code>@AiDescription</code> (like .NET attributes)</li>
-        <li><strong>Multi-framework</strong> — Express, Fastify, Koa, Hono (auto-detected)</li>
+        <li><strong>Multi-framework</strong> — Express, Fastify, Koa, Hono, NestJS, Next.js, tRPC, Lambda (auto-detected)</li>
         <li><strong>MCP Server</strong> — Full Model Context Protocol (tools, resources, prompts, completions)</li>
         <li><strong>RAG Search</strong> — Semantic search via built-in <code>rag_search</code> tool</li>
         <li><strong>Swagger Discovery</strong> — Auto-discovers endpoints from OpenAPI spec</li>
+        <li><strong>Custom Handlers</strong> — Bypass HTTP with in-process tool handlers</li>
+        <li><strong>Tool Versioning</strong> — v1/v2 with deprecation support</li>
+        <li><strong>Dry-run Mode</strong> — Validate without executing</li>
         <li><strong>Auth &amp; CORS</strong> — API key auth + configurable CORS</li>
-        <li><strong>Metrics</strong> — Tool usage tracking (calls, errors, latency)</li>
-        <li><strong>SSE Transport</strong> — Persistent connections for streaming</li>
-        <li><strong>Zero External Deps</strong> — No OpenAI/Ollama required</li>
+        <li><strong>Metrics + Audit</strong> — Tool usage tracking + execution history</li>
+        <li><strong>Circuit Breaker</strong> — Auto-disable failing tools</li>
+        <li><strong>Multi-tenant</strong> — Different tools per API key</li>
+        <li><strong>SSE + WebSocket</strong> — Persistent connections with heartbeat</li>
+        <li><strong>Embedding Providers</strong> — Local, OpenAI, Ollama</li>
+        <li><strong>Zero External Deps</strong> — Core works without OpenAI/Ollama</li>
     </ul>
 
     <h2>Decorators</h2>

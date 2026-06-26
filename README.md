@@ -10,14 +10,19 @@ Works with **Express**, **Fastify**, **Koa**, and **Hono**.
 ## Features
 
 - **Decorator-based** — `@AiTool`, `@AiHidden`, `@AiDescription` (like .NET attributes)
-- **Multi-framework** — Express, Fastify, Koa, Hono (auto-detected)
+- **Multi-framework** — Express, Fastify, Koa, Hono, NestJS, Next.js, tRPC, AWS Lambda
 - **MCP Server** — Full Model Context Protocol implementation
 - **RAG Search** — Semantic search across API documentation
 - **Swagger Discovery** — Auto-discovers endpoints from OpenAPI spec
-- **Zero Config** — Just `useController()` + `useAi()` and it works
+- **Custom Handlers** — Bypass HTTP with in-process tool handlers
+- **Tool Versioning** — v1/v2 with deprecation support
+- **Dry-run Mode** — Validate without executing
 - **Auth & CORS** — Built-in API key auth and CORS headers
-- **Metrics** — Tool usage tracking (calls, errors, latency)
-- **SSE Transport** — Server-Sent Events for persistent connections
+- **Circuit Breaker** — Auto-disable failing tools
+- **Multi-tenant** — Different tools per API key
+- **Metrics + Audit** — Tool usage tracking + execution history
+- **SSE + WebSocket** — Persistent transports with heartbeat
+- **Embedding Providers** — Local (zero deps), OpenAI, Ollama
 
 ## Installation
 
