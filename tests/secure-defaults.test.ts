@@ -263,6 +263,20 @@ describe('WebSocket transport authenticates the upgrade', () => {
     expect(response!.error?.code).toBe(-32001);
   });
 
+  it('still requires an authenticated context when allowAnonymous is combined with apiKey or authenticate', async () => {
+    // The HTTP adapters enforce a configured apiKey/authenticate even with allowAnonymous: true;
+    // the WebSocket transport must not let unauthenticated messages through in that case.
+    for (const options of [
+      { apiKey: 'ws-key', allowAnonymous: true },
+      { authenticate: () => ({ user: 'u' }), allowAnonymous: true },
+    ] as McpOptions[]) {
+      const mixed = createWsMcpHandler(handler, options);
+      const response = await mixed.handleMessage(rpc('tools/call', { name: 'noop', arguments: {} }));
+      expect(response!.error?.code).toBe(-32001);
+      expect(response!.result).toBeUndefined();
+    }
+  });
+
   it('does not leak exception messages from the handler', async () => {
     const { handler: failing } = makeHandler([]);
     vi.spyOn(failing, 'handle').mockRejectedValue(new Error('db password=hunter2'));

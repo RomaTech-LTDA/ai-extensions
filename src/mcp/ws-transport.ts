@@ -24,7 +24,8 @@ export type McpUpgradeResult =
  * Secure by default: authenticate every connection at upgrade time with `verifyClient`
  * (for the `ws` package) or `authenticateUpgrade(req)` (any server). It checks the `Origin`
  * header (cross-site WebSocket hijacking) and `apiKey` / `authenticate`. `handleMessage()` only
- * accepts the context produced by a successful upgrade check, unless `allowAnonymous: true`.
+ * accepts the context produced by a successful upgrade check, unless the endpoint is
+ * anonymous (`allowAnonymous: true` without `apiKey` or `authenticate`).
  *
  * @throws Error when neither `apiKey`, `authenticate` nor `allowAnonymous: true` is configured.
  *
@@ -53,6 +54,9 @@ export function createWsMcpHandler(
   const opts = resolveMcpOptions(options);
   const authenticated = new WeakSet<McpCallContext>();
   const contexts = new WeakMap<object, McpCallContext>();
+  // Like the HTTP adapters, a configured apiKey/authenticate is enforced even when
+  // allowAnonymous is also set: only a fully anonymous endpoint skips the upgrade context.
+  const anonymousEndpoint = opts.allowAnonymous === true && !opts.apiKey && typeof opts.authenticate !== 'function';
 
   async function authenticateUpgrade(req: McpUpgradeRequest): Promise<McpUpgradeResult> {
     if (!req || !req.headers) return { ok: false, status: 401, message: 'Unauthorized' };
@@ -100,10 +104,11 @@ export function createWsMcpHandler(
      * (send nothing back in that case).
      *
      * @param context - The context returned by `authenticateUpgrade()` / `getContext()` for this
-     *   connection. Without it the message is rejected, unless `allowAnonymous: true`.
+     *   connection. Without it the message is rejected, unless the endpoint is anonymous
+     *   (`allowAnonymous: true` with neither `apiKey` nor `authenticate`).
      */
     async handleMessage(rawMessage: string, context?: McpCallContext): Promise<McpResponse | null> {
-      if (!(context && authenticated.has(context)) && !opts.allowAnonymous) {
+      if (!(context && authenticated.has(context)) && !anonymousEndpoint) {
         return mcpFailure(null, -32001, 'Unauthorized: authenticate the WebSocket upgrade first');
       }
 
