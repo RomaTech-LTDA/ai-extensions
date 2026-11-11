@@ -21,7 +21,7 @@ features:
   - title: Decorator-based
     details: "@AiTool, @AiHidden, @AiDescription, @AiCategory, @AiRole, @AiRateLimit — like .NET attributes."
   - title: Security Built-in
-    details: API key auth, CORS, per-tool and global rate limiting, circuit breaker, multi-tenant support.
+    details: Secure by default (API key or your own authenticate hook), role enforcement, Origin checks, per-client rate limiting, opt-in circuit breaker, audit log.
   - title: Zero Dependencies
     details: Core works without OpenAI/Ollama. Local embedding provider included for offline RAG.
 ---

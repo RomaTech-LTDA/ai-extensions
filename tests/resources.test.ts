@@ -20,7 +20,7 @@ describe('MCP Resources', () => {
     registerAiMetadata('POST', '/api/items', aiTool({ toolName: 'create_item' }));
     registerAiMetadata('DELETE', '/api/items/:id', aiHidden());
 
-    const services = useAi(app, { baseUrl: 'http://localhost:9999' });
+    const services = useAi(app, { baseUrl: 'http://localhost:9999', mcp: { apiKey: 'test-key' } });
     handler = services.mcpHandler;
   });
 

@@ -1,6 +1,6 @@
 {
   "name": "@romatech/ai-extensions",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Plug-and-play AI enablement framework for Node.js APIs. Transforms Express/Fastify/Koa endpoints into MCP tools and RAG-enabled knowledge sources automatically.",
   "author": "RomaTech/Leandro Romanelli",
   "license": "MIT",
@@ -92,10 +92,10 @@
     "reflect-metadata": "^0.2.2",
     "rimraf": "^6.0.1",
     "typescript": "^5.9.3",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.12"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"

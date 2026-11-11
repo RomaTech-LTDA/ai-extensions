@@ -1,4 +1,4 @@
-import { metadataRegistry, type RouteMetadata } from '../metadata/registry';
+import { metadataRegistry, splitRegistryKey, type RouteMetadata } from '../metadata/registry';
 import type { AiEndpointDescriptor, IEndpointDiscoveryProvider } from '../shared/models';
 import { AiExposureLevel } from '../shared/models';
 
@@ -12,7 +12,7 @@ export class MetadataDiscoveryProvider implements IEndpointDiscoveryProvider {
     const descriptors: AiEndpointDescriptor[] = [];
 
     for (const [key, metadata] of entries) {
-      const [method, path] = key.split(':');
+      const [method, path] = splitRegistryKey(key);
       if (!method || !path) continue;
 
       descriptors.push(this.toDescriptor(method, path, metadata));

@@ -4,22 +4,38 @@
 export interface AuditEntry {
   timestamp: number;
   toolName: string;
+  /** MCP method: `tools/call` or `resources/read`. */
   method: string;
+  /** Tool arguments; only recorded when the log was created with `includeArguments: true`. */
   arguments?: Record<string, unknown>;
   durationMs: number;
   success: boolean;
+  /** Server-side error message (never sent to the MCP client). */
   error?: string;
-  /** Client identifier (from API key or IP). */
+  /** Client identifier (normally the caller IP address). */
   clientId?: string;
 }
 
+/** Options for `McpAuditLog`. */
+export interface McpAuditLogOptions {
+  /** Maximum number of entries kept in memory; the oldest are dropped. Default: 10000 */
+  maxEntries?: number;
+  /**
+   * Whether to store the tool arguments in each entry. They can contain personal data or
+   * secrets, so they are left out by default. Default: false
+   */
+  includeArguments?: boolean;
+}
+
 /**
- * Audit log for MCP tool executions.
- * Records all tool calls for compliance, debugging, and analytics.
+ * In-memory audit log for MCP tool executions (bounded; entries are lost on restart).
+ * `useAi()` creates one and attaches it to the MCP handler, so every executed `tools/call`
+ * (including `rag_search`) and `resources/read` is recorded. Export the entries to durable
+ * storage yourself if you need them for compliance.
  *
  * @example
  * ```ts
- * const { auditLog } = useAi(app);
+ * const { auditLog } = useAi(app, { mcp: { apiKey: process.env.MCP_API_KEY } });
  *
  * // Query recent entries
  * const recent = auditLog.getRecent(50);
@@ -35,16 +51,23 @@ export interface AuditEntry {
 export class McpAuditLog {
   private readonly _entries: AuditEntry[] = [];
   private readonly _maxEntries: number;
+  private readonly _includeArguments: boolean;
 
-  constructor(maxEntries = 10_000) {
-    this._maxEntries = maxEntries;
+  /** @param options - Options, or the maximum number of entries (legacy signature). */
+  constructor(options: number | McpAuditLogOptions = {}) {
+    const resolved = typeof options === 'number' ? { maxEntries: options } : options;
+    this._maxEntries = Math.max(1, resolved.maxEntries ?? 10_000);
+    this._includeArguments = resolved.includeArguments === true;
   }
 
   /**
-   * Records a tool execution.
+   * Records a tool execution. Arguments are dropped unless `includeArguments` is enabled.
    */
   record(entry: Omit<AuditEntry, 'timestamp'>): void {
-    this._entries.push({ ...entry, timestamp: Date.now() });
+    const { arguments: args, ...rest } = entry;
+    const stored: AuditEntry = { ...rest, timestamp: Date.now() };
+    if (this._includeArguments && args !== undefined) stored.arguments = args;
+    this._entries.push(stored);
 
     // Evict oldest entries if over limit
     if (this._entries.length > this._maxEntries) {

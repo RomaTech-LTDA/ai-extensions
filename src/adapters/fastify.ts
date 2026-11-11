@@ -1,62 +1,54 @@
-import type { McpRequest } from '../mcp/protocol';
-import { mcpFailure } from '../mcp/protocol';
 import type { McpRequestHandler } from '../mcp/request-handler';
 import type { McpOptions } from '../mcp/options';
-import { DEFAULT_MCP_OPTIONS } from '../mcp/options';
+import { assertMcpAuthConfigured, resolveMcpOptions } from '../mcp/options';
+import { processMcpHttpRequest } from '../mcp/http-pipeline';
 
 /**
  * Fastify plugin that handles MCP protocol requests.
+ * Requires authentication (`apiKey` and/or `authenticate`) unless `allowAnonymous: true`.
+ *
+ * @throws Error when neither `apiKey`, `authenticate` nor `allowAnonymous: true` is configured.
  *
  * @example
  * ```ts
  * import Fastify from 'fastify';
- * import { createFastifyMcpPlugin } from '@romatech/ai-extensions/adapters/fastify';
+ * import { createFastifyMcpPlugin } from '@romatech/ai-extensions/adapters';
  *
  * const fastify = Fastify();
- * fastify.register(createFastifyMcpPlugin(handler, { route: '/mcp' }));
+ * fastify.register(createFastifyMcpPlugin(handler, { route: '/mcp', apiKey: process.env.MCP_API_KEY }));
  * ```
  */
 export function createFastifyMcpPlugin(
   handler: McpRequestHandler,
   options?: McpOptions,
 ) {
-  const opts = { ...DEFAULT_MCP_OPTIONS, ...options };
+  assertMcpAuthConfigured(options);
+  const opts = resolveMcpOptions(options);
 
   return async function mcpPlugin(fastify: any) {
-    // Health endpoint
-    fastify.get(`${opts.route}/health`, async () => {
-      return { status: 'ok', timestamp: new Date().toISOString() };
-    });
-
-    // MCP endpoint
-    fastify.post(opts.route, async (request: any, reply: any) => {
-      // API key auth
-      if (opts.apiKey) {
-        const auth = request.headers['authorization'] ?? '';
-        const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-        if (token !== opts.apiKey) {
-          return reply.status(401).send(mcpFailure(null, -32000, 'Unauthorized'));
-        }
-      }
-
-      // Content-Type check
-      const contentType = request.headers['content-type'] ?? '';
-      if (!contentType.includes('application/json')) {
-        return reply.status(415).send(mcpFailure(null, -32700, 'Content-Type must be application/json'));
-      }
-
-      const body = request.body as McpRequest;
-      if (!body || !body.method) {
-        return reply.status(400).send(mcpFailure(null, -32600, 'Invalid request'));
-      }
-
-      try {
-        const response = await handler.handle(body);
-        return response;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return reply.status(500).send(mcpFailure(null, -32603, `Internal error: ${message}`));
-      }
-    });
+    registerFastifyMcpRoutes(fastify, handler, opts);
   };
+}
+
+/** Registers the health, preflight and MCP routes on a Fastify instance. */
+export function registerFastifyMcpRoutes(fastify: any, handler: McpRequestHandler, opts: McpOptions): void {
+  const route = opts.route ?? '/mcp';
+
+  fastify.get(`${route}/health`, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  const answer = async (request: any, reply: any) => {
+    const outcome = await processMcpHttpRequest(
+      handler,
+      opts,
+      { method: request.method, headers: request.headers, clientId: request.ip, raw: request },
+      () => request.body,
+    );
+    reply.headers(outcome.headers);
+    reply.status(outcome.status);
+    return outcome.body === undefined ? reply.send() : reply.send(outcome.body);
+  };
+
+  // CORS preflight (only answered when allowed by the Origin check)
+  fastify.options?.(route, answer);
+  fastify.post(route, answer);
 }

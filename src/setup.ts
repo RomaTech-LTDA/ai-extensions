@@ -1,5 +1,5 @@
-import type { McpOptions } from './mcp/options';
-import { DEFAULT_MCP_OPTIONS } from './mcp/options';
+import type { McpOptions, ResolvedMcpOptions } from './mcp/options';
+import { assertMcpAuthConfigured, resolveMcpOptions } from './mcp/options';
 import type { RagOptions } from './rag/options';
 import { SwaggerDiscoveryProvider, type SwaggerDiscoveryOptions } from './discovery/swagger-discovery-provider';
 import { McpToolRegistry } from './mcp/tool-registry';
@@ -8,7 +8,12 @@ import { McpRequestHandler } from './mcp/request-handler';
 import { SlidingWindowRateLimiter } from './mcp/rate-limiter';
 import { McpMetrics } from './mcp/metrics';
 import { McpResourceRegistry } from './mcp/resources';
+import { CircuitBreaker, type CircuitBreakerOptions } from './mcp/circuit-breaker';
+import { McpAuditLog, type McpAuditLogOptions } from './mcp/audit-log';
 import { createMcpMiddleware } from './mcp/middleware';
+import { processMcpHttpRequest } from './mcp/http-pipeline';
+import { registerFastifyMcpRoutes } from './adapters/fastify';
+import { createKoaMcpMiddleware } from './adapters/koa';
 import { LocalEmbeddingProvider } from './rag/local-embedding-provider';
 import { SemanticIndexer } from './rag/semantic-indexer';
 import { RagSearchService } from './rag/search-service';
@@ -37,6 +42,17 @@ export interface AiOptions {
   embeddingProvider?: IEmbeddingProvider;
   /** Custom logger. Default: ConsoleLogger */
   logger?: ILogger;
+  /**
+   * Circuit breaker for tool executions (opt-in): `true` for the defaults, or its options.
+   * A tool whose calls keep failing (timeouts, network errors, HTTP 5xx) is refused with
+   * `isError: true` until a trial call succeeds. Default: disabled
+   */
+  circuitBreaker?: boolean | CircuitBreakerOptions;
+  /**
+   * In-memory audit log of tool executions, returned as `auditLog`. Pass `false` to disable.
+   * Arguments are not stored unless `includeArguments: true`. Default: enabled (10000 entries)
+   */
+  auditLog?: false | McpAuditLogOptions;
 }
 
 /**
@@ -53,6 +69,10 @@ export interface AiServices {
   ragSearch: RagSearchService;
   /** MCP usage metrics. */
   metrics: McpMetrics;
+  /** Audit log of tool executions (undefined when disabled with `auditLog: false`). */
+  auditLog?: McpAuditLog;
+  /** Circuit breaker of tool executions (undefined unless enabled with `circuitBreaker`). */
+  circuitBreaker?: CircuitBreaker;
   /** Logger instance. */
   logger: ILogger;
 }
@@ -112,8 +132,10 @@ type FrameworkApp = {
  * ```
  */
 export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
+  // Secure by default: refuse to expose an anonymous MCP endpoint by accident.
+  assertMcpAuthConfigured(options?.mcp);
   const baseUrl = options?.baseUrl ?? 'http://localhost:3000';
-  const mcpOptions: Required<McpOptions> = { ...DEFAULT_MCP_OPTIONS, ...options?.mcp };
+  const mcpOptions: ResolvedMcpOptions = resolveMcpOptions(options?.mcp);
   const logger = options?.logger ?? new ConsoleLogger();
   const metrics = new McpMetrics();
 
@@ -124,7 +146,7 @@ export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
 
   // MCP core services
   const registry = new McpToolRegistry(discoveryProvider);
-  const executor = new McpToolExecutor(baseUrl, mcpOptions.toolTimeoutMs);
+  const executor = new McpToolExecutor(baseUrl, mcpOptions.toolTimeoutMs, { maxResponseBytes: mcpOptions.maxToolResponseBytes });
   const rateLimiter = new SlidingWindowRateLimiter();
   const handler = new McpRequestHandler(registry, executor, rateLimiter, mcpOptions);
 
@@ -134,8 +156,15 @@ export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
   const ragSearch = new RagSearchService(indexer, discoveryProvider, options?.rag);
 
   // Connect services
+  handler.attachLogger(logger);
   handler.attachRagSearch(ragSearch);
   handler.attachMetrics(metrics);
+  const auditLog = options?.auditLog === false ? undefined : new McpAuditLog(options?.auditLog ?? {});
+  if (auditLog) handler.attachAuditLog(auditLog);
+  const circuitBreaker = options?.circuitBreaker
+    ? new CircuitBreaker(options.circuitBreaker === true ? undefined : options.circuitBreaker)
+    : undefined;
+  if (circuitBreaker) handler.attachCircuitBreaker(circuitBreaker);
   const resources = new McpResourceRegistry(discoveryProvider);
   handler.attachResources(resources);
 
@@ -147,6 +176,10 @@ export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
     baseUrl,
     framework: detectFramework(app),
   });
+  if (mcpOptions.allowAnonymous && !mcpOptions.apiKey && !mcpOptions.authenticate) {
+    logger.warn('MCP endpoint is anonymous (mcp.allowAnonymous: true): anyone who can reach it can list and call tools.',
+      { route: mcpOptions.route });
+  }
 
   return {
     mcpHandler: handler,
@@ -154,6 +187,8 @@ export function useAi(app: FrameworkApp, options?: AiOptions): AiServices {
     mcpExecutor: executor,
     ragSearch,
     metrics,
+    auditLog,
+    circuitBreaker,
     logger,
   };
 }
@@ -168,117 +203,47 @@ function detectFramework(app: FrameworkApp): string {
   return 'unknown';
 }
 
-function registerMcpOnFramework(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+function registerMcpOnFramework(app: FrameworkApp, handler: McpRequestHandler, options: ResolvedMcpOptions): void {
   const framework = detectFramework(app);
 
   switch (framework) {
     case 'fastify':
-      registerFastify(app, handler, options);
+      registerFastifyMcpRoutes(app, handler, options);
       break;
     case 'koa':
-      registerKoa(app, handler, options);
+      app.use!(createKoaMcpMiddleware(handler, options));
       break;
     case 'hono':
       registerHono(app, handler, options);
       break;
     case 'express':
     default:
-      registerExpress(app, handler, options);
+      app.use!(createMcpMiddleware(handler, options));
       break;
   }
 }
 
-function registerExpress(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
-  const middleware = createMcpMiddleware(handler, options);
-  app.use!(middleware);
-}
-
-function registerFastify(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
-  const route = options.route;
-
-  // Health
-  app.get!(`${route}/health`, async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
-
-  // MCP endpoint
-  app.post!(route, async (request: any, reply: any) => {
-    const body = request.body;
-    if (!body || !body.method) {
-      return reply.status(400).send({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid request' } });
-    }
-
-    // Auth check
-    if (options.apiKey) {
-      const auth = request.headers['authorization'] ?? '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-      if (token !== options.apiKey) {
-        return reply.status(401).send({ jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized' } });
-      }
-    }
-
-    const response = await handler.handle(body);
-    return response;
-  });
-}
-
-function registerKoa(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
-  const route = options.route;
-
-  // Register as Koa middleware
-  const koaMiddleware = async (ctx: any, next: () => Promise<void>) => {
-    if (ctx.path === `${route}/health` && ctx.method === 'GET') {
-      ctx.body = { status: 'ok', timestamp: new Date().toISOString() };
-      return;
-    }
-
-    if (ctx.path !== route || ctx.method !== 'POST') {
-      return next();
-    }
-
-    if (options.apiKey) {
-      const auth = ctx.headers['authorization'] ?? '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-      if (token !== options.apiKey) {
-        ctx.status = 401;
-        ctx.body = { jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized' } };
-        return;
-      }
-    }
-
-    const body = ctx.request.body;
-    if (!body || !body.method) {
-      ctx.status = 400;
-      ctx.body = { jsonrpc: '2.0', error: { code: -32600, message: 'Invalid request' } };
-      return;
-    }
-
-    ctx.body = await handler.handle(body);
-  };
-
-  app.use!(koaMiddleware);
-}
-
-function registerHono(app: FrameworkApp, handler: McpRequestHandler, options: Required<McpOptions>): void {
+function registerHono(app: FrameworkApp, handler: McpRequestHandler, options: ResolvedMcpOptions): void {
   const route = options.route;
 
   // Health
   app.get!(`${route}/health`, (c: any) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-  // MCP endpoint
-  app.post!(route, async (c: any) => {
-    if (options.apiKey) {
-      const auth = c.req.header('authorization') ?? '';
-      const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-      if (token !== options.apiKey) {
-        return c.json({ jsonrpc: '2.0', error: { code: -32000, message: 'Unauthorized' } }, 401);
-      }
-    }
+  const answer = async (c: any, method: string) => {
+    // Hono has no portable client address: every caller shares one rate-limit bucket. To rate-limit
+    // per client, register the route yourself and call processMcpHttpRequest() with a clientId.
+    const outcome = await processMcpHttpRequest(
+      handler,
+      options,
+      { method, headers: c.req.raw.headers, raw: c },
+      () => c.req.json(),
+    );
+    return outcome.body === undefined
+      ? c.body(null, outcome.status, outcome.headers)
+      : c.json(outcome.body, outcome.status, outcome.headers);
+  };
 
-    const body = await c.req.json();
-    if (!body || !body.method) {
-      return c.json({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid request' } }, 400);
-    }
-
-    const response = await handler.handle(body);
-    return c.json(response);
-  });
+  // CORS preflight (only answered when allowed by the Origin check)
+  app.options?.(route, (c: any) => answer(c, 'OPTIONS'));
+  app.post!(route, (c: any) => answer(c, 'POST'));
 }

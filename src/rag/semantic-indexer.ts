@@ -11,6 +11,8 @@ export interface SemanticDocument {
   httpMethod: string;
   route: string;
   category?: string;
+  /** Role required to see this endpoint (from `@AiRole` / `aiTool({ role })`). */
+  requiredRole?: string;
   priority: number;
   embedding?: number[];
 }
@@ -87,6 +89,7 @@ export class SemanticIndexer {
       httpMethod: endpoint.httpMethod,
       route: endpoint.route,
       category: endpoint.category,
+      requiredRole: endpoint.requiredRole,
       priority: endpoint.contextPriority,
     };
   }

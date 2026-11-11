@@ -39,6 +39,7 @@ RAG is also available as a built-in MCP tool called `rag_search`:
 
 ```ts
 useAi(app, {
+  mcp: { apiKey: process.env.MCP_API_KEY },
   rag: {
     maxSearchResults: 10,      // max results per query
     minimumSimilarity: 0.3,    // minimum score threshold (0-1)
@@ -67,6 +68,7 @@ class OpenAiEmbeddingProvider implements IEmbeddingProvider {
 }
 
 useAi(app, {
+  mcp: { apiKey: process.env.MCP_API_KEY },
   embeddingProvider: new OpenAiEmbeddingProvider(),
 });
 ```

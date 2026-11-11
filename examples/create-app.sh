@@ -65,6 +65,7 @@ EOF
 cat > src/server.ts << 'EOF'
 import 'reflect-metadata';
 import express from 'express';
+import { randomUUID } from 'node:crypto';
 import { useAi, registerAiMetadata, aiTool, aiReadOnly } from '@romatech/ai-extensions';
 
 const app = express();
@@ -85,12 +86,15 @@ app.post('/api/echo', (req, res) => {
 registerAiMetadata('GET', '/api/hello', aiReadOnly({ description: 'Returns a greeting' }));
 registerAiMetadata('POST', '/api/echo', aiTool({ toolName: 'echo', description: 'Echoes back the request body' }));
 
-// Enable AI (MCP + RAG)
-useAi(app, { baseUrl: `http://localhost:${PORT}` });
+// Enable AI (MCP + RAG). The MCP endpoint requires authentication: set MCP_API_KEY,
+// or a random key is generated for this run and printed below.
+const MCP_API_KEY = process.env.MCP_API_KEY || randomUUID();
+useAi(app, { baseUrl: `http://localhost:${PORT}`, mcp: { apiKey: MCP_API_KEY } });
 
 app.listen(PORT, () => {
   console.log(`Server: http://localhost:${PORT}`);
   console.log(`MCP:    http://localhost:${PORT}/mcp`);
+  if (!process.env.MCP_API_KEY) console.log(`MCP key: ${MCP_API_KEY} (send as Authorization: Bearer <key>)`);
 });
 EOF
 
@@ -106,4 +110,4 @@ echo "  cd $APP_NAME"
 echo "  npm run dev"
 echo ""
 echo "Then test MCP:"
-echo "  curl -X POST http://localhost:3000/mcp -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}'"
+echo "  curl -X POST http://localhost:3000/mcp -H \"Authorization: Bearer \$MCP_API_KEY\" -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}'"

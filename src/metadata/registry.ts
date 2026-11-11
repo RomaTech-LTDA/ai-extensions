@@ -12,6 +12,24 @@ export interface RouteMetadata {
 }
 
 /**
+ * Normalizes a route template to the OpenAPI form, converting Express/Koa/Fastify-style
+ * `:param` segments to `{param}`, so metadata registered as `/orders/:id` also applies to
+ * the `/orders/{id}` path found in the Swagger spec (otherwise `aiHidden()` would be ignored).
+ */
+export function normalizeRoutePath(path: string): string {
+  return path.replace(/(?<=\/):([A-Za-z0-9_]+)/g, '{$1}');
+}
+
+/**
+ * Splits a registry key (`METHOD:/path`) at the first colon only, so paths containing
+ * `:` (Express params, `/items:batchGet`) stay intact.
+ */
+export function splitRegistryKey(key: string): [string, string] {
+  const index = key.indexOf(':');
+  return index < 0 ? [key, ''] : [key.slice(0, index), key.slice(index + 1)];
+}
+
+/**
  * Global registry for AI route metadata.
  * Stores metadata keyed by METHOD + PATH.
  */
@@ -19,7 +37,7 @@ class MetadataRegistry {
   private readonly _entries = new Map<string, RouteMetadata>();
 
   private makeKey(method: string, path: string): string {
-    return `${method.toUpperCase()}:${path}`;
+    return `${method.toUpperCase()}:${normalizeRoutePath(path)}`;
   }
 
   set(method: string, path: string, metadata: RouteMetadata): void {

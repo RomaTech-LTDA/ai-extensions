@@ -27,9 +27,6 @@ export function enrichSpecWithAiMetadata(spec: any): void {
       const metadata = metadataRegistry.get(httpMethod, path);
       if (!metadata) continue;
 
-      // Ensure extensions object exists
-      if (!operation.extensions) operation.extensions = {};
-
       switch (metadata.type) {
         case 'hidden':
           operation['x-ai-hidden'] = true;
@@ -51,7 +48,8 @@ export function enrichSpecWithAiMetadata(spec: any): void {
 
 /**
  * Express middleware that intercepts the Swagger JSON response and enriches it
- * with x-ai-* extensions. Place this AFTER useSwagger() but BEFORE useAi().
+ * with x-ai-* extensions. Call it BEFORE useSwagger() (Express runs handlers in
+ * registration order, so a handler added after the spec route never sees the response).
  *
  * This makes the metadata visible to any external tool reading the spec,
  * exactly like the .NET AiMetadataOperationFilter.
@@ -63,8 +61,8 @@ export function enrichSpecWithAiMetadata(spec: any): void {
  * import { useSwagger } from '@romatech/swagger';
  * import { useAiSwaggerEnricher, useAi } from '@romatech/ai-extensions';
  *
+ * useAiSwaggerEnricher(app); // must come first: wraps res.json for the spec route
  * useSwagger(app);
- * useAiSwaggerEnricher(app); // injects x-ai-* into the spec
  * useAi(app);
  * ```
  */
@@ -72,9 +70,6 @@ export function useAiSwaggerEnricher(
   app: any,
   specPath = '/api-docs.json',
 ): void {
-  // Intercept the spec endpoint response to inject x-ai-* extensions
-  const originalUse = app.get.bind(app);
-
   // Override the spec endpoint to enrich the response
   app.get(specPath, (req: any, res: any, next: any) => {
     const originalJson = res.json.bind(res);

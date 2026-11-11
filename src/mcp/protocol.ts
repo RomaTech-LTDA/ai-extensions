@@ -23,6 +23,29 @@ export interface McpRequestParams {
 }
 
 /**
+ * Per-request information about the caller, built by the HTTP adapters and passed
+ * to `McpRequestHandler.handle()`.
+ */
+export interface McpCallContext {
+  /**
+   * Caller headers to forward to the HTTP request that executes a tool
+   * (e.g. `authorization`, `cookie`). Only filled when `forwardAuthorization` is enabled.
+   */
+  forwardHeaders?: Record<string, string>;
+  /**
+   * Stable identifier of the calling client (normally its IP address), used to keep
+   * a separate rate-limit bucket per client. Default: a single shared bucket.
+   */
+  clientId?: string;
+  /**
+   * The authenticated caller, as returned by the `authenticate` hook (absent when the
+   * endpoint is authenticated by `apiKey` only, or when `allowAnonymous` is set).
+   * Passed to `resolveRoles` and to in-process tool handlers.
+   */
+  principal?: unknown;
+}
+
+/**
  * Outgoing MCP JSON-RPC response.
  */
 export interface McpResponse {

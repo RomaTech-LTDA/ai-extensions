@@ -95,7 +95,7 @@ const app = express();
 app.use(express.json());
 
 useController(app, OrdersController);
-useAi(app, { baseUrl: 'http://localhost:3000' });
+useAi(app, { baseUrl: 'http://localhost:3000', mcp: { apiKey: process.env.MCP_API_KEY } });
 
 app.listen(3000);</code></pre>
         </section>
@@ -121,11 +121,11 @@ app.listen(3000);</code></pre>
                 </div>
                 <div class="feature-card">
                     <h3>Auth &amp; Rate Limiting</h3>
-                    <p>API key auth, CORS, per-tool and global rate limiting, role-based execution.</p>
+                    <p>Secure by default: API key or your own authenticate hook, Origin checks, roles that fail closed, per-client rate limiting.</p>
                 </div>
                 <div class="feature-card">
                     <h3>Circuit Breaker</h3>
-                    <p>Auto-disable failing tools. Multi-tenant support. Metrics and audit logging.</p>
+                    <p>Opt-in circuit breaker for failing tools. Usage metrics and an in-memory audit log.</p>
                 </div>
                 <div class="feature-card">
                     <h3>SSE + WebSocket</h3>

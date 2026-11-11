@@ -1,6 +1,6 @@
 import type { AiEndpointDescriptor, IEndpointDiscoveryProvider } from '../shared/models';
 import { AiExposureLevel } from '../shared/models';
-import { metadataRegistry } from '../metadata/registry';
+import { metadataRegistry, splitRegistryKey } from '../metadata/registry';
 
 /**
  * Options for the Swagger discovery provider.
@@ -92,7 +92,7 @@ export class SwaggerDiscoveryProvider implements IEndpointDiscoveryProvider {
     const descriptors: AiEndpointDescriptor[] = [];
 
     for (const [key, metadata] of entries) {
-      const [method, path] = key.split(':');
+      const [method, path] = splitRegistryKey(key);
       if (!method || !path) continue;
       if (metadata.type === 'hidden') continue;
 

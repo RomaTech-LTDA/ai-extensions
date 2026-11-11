@@ -58,7 +58,8 @@ app.use(express.json());
 useController(app, OrdersController);
 
 // Enable AI (MCP + RAG)
-useAi(app, { baseUrl: 'http://localhost:3000' });
+// The MCP endpoint requires authentication (apiKey, authenticate or allowAnonymous: true)
+useAi(app, { baseUrl: 'http://localhost:3000', mcp: { apiKey: process.env.MCP_API_KEY } });
 
 app.listen(3000);
 ```
@@ -76,13 +77,14 @@ app.delete('/api/orders/:id', deleteHandler);
 registerAiMetadata('POST', '/api/orders', aiTool('create_order'));
 registerAiMetadata('DELETE', '/api/orders/:id', aiHidden());
 
-useAi(app);
+useAi(app, { mcp: { apiKey: process.env.MCP_API_KEY } });
 ```
 
 ## Verify Installation
 
 ```bash
 curl -X POST http://localhost:3000/mcp \
+  -H "Authorization: Bearer $MCP_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
@@ -98,14 +100,14 @@ The same API works with Fastify, Koa, and Hono:
 import Fastify from 'fastify';
 const fastify = Fastify();
 useController(fastify, OrdersController);
-useAi(fastify);
+useAi(fastify, { mcp: { apiKey: process.env.MCP_API_KEY } });
 fastify.listen({ port: 3000 });
 
 // Hono
 import { Hono } from 'hono';
 const app = new Hono();
 useController(app, OrdersController);
-useAi(app);
+useAi(app, { mcp: { apiKey: process.env.MCP_API_KEY } });
 export default app;
 ```
 

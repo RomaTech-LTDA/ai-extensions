@@ -1,22 +1,27 @@
 import type { McpRequestHandler } from './request-handler';
 
 /**
- * Multi-tenant MCP — routes requests to different handlers based on tenant.
- * Useful for SaaS where different API keys have access to different tools.
+ * Lookup table from a tenant key to an `McpRequestHandler`.
+ *
+ * This is a building block only: `useAi()` and the adapters do **not** use it. You must
+ * authenticate the caller and derive the tenant key yourself (never trust a tenant key taken
+ * from the request without authentication), then route to the resolved handler, e.g. with
+ * `processMcpHttpRequest()` in your own route.
  *
  * @example
  * ```ts
  * const multiTenant = new McpMultiTenant();
+ * multiTenant.register('tenant-a', handlerA);
+ * multiTenant.register('tenant-b', handlerB);
  *
- * // Register handlers per tenant/API key
- * multiTenant.register('tenant-a-key', handlerA);
- * multiTenant.register('tenant-b-key', handlerB);
- *
- * // In middleware:
- * const handler = multiTenant.resolve(apiKey);
- * if (handler) {
- *     const response = await handler.handle(request);
- * }
+ * app.post('/mcp', async (req, res) => {
+ *     const tenant = await authenticateTenant(req);          // your own authentication
+ *     const handler = tenant && multiTenant.resolve(tenant.id);
+ *     if (!handler) return res.status(401).end();
+ *     const outcome = await processMcpHttpRequest(handler, { authenticate: () => tenant },
+ *         { method: req.method, headers: req.headers, clientId: req.ip, raw: req }, () => req.body);
+ *     sendExpressOutcome(res, outcome);
+ * });
  * ```
  */
 export class McpMultiTenant {

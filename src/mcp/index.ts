@@ -6,6 +6,8 @@ export * from './tool-executor';
 export * from './tool-versioning';
 export * from './request-handler';
 export * from './middleware';
+export * from './http-guard';
+export * from './http-pipeline';
 export * from './sse-transport';
 export * from './ws-transport';
 export * from './metrics';

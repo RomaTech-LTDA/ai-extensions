@@ -21,7 +21,7 @@ describe('MCP Integration (end-to-end)', () => {
     registerAiMetadata('POST', '/api/items', aiTool({ toolName: 'create_item', description: 'Create item' }));
     registerAiMetadata('DELETE', '/api/items/:id', aiHidden());
 
-    const services = useAi(app, { baseUrl: 'http://localhost:9999' });
+    const services = useAi(app, { baseUrl: 'http://localhost:9999', mcp: { apiKey: 'test-key' } });
     handler = services.mcpHandler;
   });
 
@@ -69,7 +69,10 @@ describe('MCP Integration (end-to-end)', () => {
       jsonrpc: '2.0', id: 6, method: 'tools/call',
       params: { name: 'create_item' }, // no arguments
     });
-    // Should attempt execution and fail (no server at port 9999)
-    expect(response.error).toBeDefined();
+    // Should attempt execution and fail (no server at port 9999). Per the MCP spec a tool
+    // execution failure is a result with isError: true, not a JSON-RPC protocol error.
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).isError).toBe(true);
+    expect((response.result as any).content[0].text).not.toContain('fetch failed');
   });
 });
